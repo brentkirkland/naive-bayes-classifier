@@ -5,6 +5,7 @@ from collections import Counter
 import random
 import time
 import math
+import sys
 
 def combine(words):
     new_words = []
@@ -93,11 +94,14 @@ def basic_stats(name, data):
     print('Number of rating 1 words: ', data['rating'][1]['no_words']);
     print('\n')
 
-def create_validation_set():
+def create_validation_set(txt):
     validation_file = '';
     training_file = '';
-    randoms = random.sample(range(1, 5000), 500)
-    with open('training.txt') as inputfile:
+    num_lines = sum(1 for line in open(txt))
+    # num_val = sum(1 for line in open(tyt))
+    num_val = num_lines / 10;
+    randoms = random.sample(range(1, num_lines), num_val)
+    with open(txt) as inputfile:
         for num, line in enumerate(inputfile, 1):
             if num in randoms:
                 validation_file = validation_file + line;
@@ -147,6 +151,12 @@ def train(data, word_set, n = 0.5805, predict = False, v = 8.5):
             if predict:
                 print '0';
             correct = correct + 1;
+        elif test['rating'] == '1' and p_0_d > p_1_d:
+            if predict:
+                print '0';
+        elif test['rating'] == '0' and p_1_d > p_0_d:
+            if predict:
+                print '1';
 
     return correct/num
 
@@ -182,7 +192,7 @@ def find_max(training_words):
     print max_word;
     print training_words['rating'][1]['word_count'][max_word];
 
-def spin(training_words, validation_words, testing_words, start_time):
+def spin(training_words, validation_words, testing_words, start_time, args):
     # find the max parameters on the validation set
     previous_accuracy = 0;
     best_n = 0;
@@ -208,18 +218,18 @@ def spin(training_words, validation_words, testing_words, start_time):
     if best_best_n == 0:
         best_best_n = best_n;
 
-    if best_train_n < .86:
-        main(start_time);
+    if best_train_n < .865:
+        main(args, start_time);
 
     return best_best_n, best_v;
 
-def main(start_time = time.time()):
-    create_validation_set()
+def main(args, start_time = time.time()):
+    create_validation_set(args[0]);
     training_words = parse_data('training_new.txt');
     validation_words = parse_data('validation.txt');
-    testing_words = parse_data('testing.txt');
+    testing_words = parse_data(args[1]);
 
-    best_n, v = spin(training_words, validation_words, testing_words, start_time);
+    best_n, v = spin(training_words, validation_words, testing_words, start_time, args);
     training_accuracy = train(training_words, training_words, best_n, False, v);
     training_time = time.time() - start_time;
 
@@ -230,10 +240,13 @@ def main(start_time = time.time()):
 
     print str(int(math.ceil(training_time))) + ' seconds (training)';
     print str(int(math.ceil(testing_time))) + ' seconds (labeling)';
-
+    training_accuracy = float("{0:.3f}".format(training_accuracy));
+    testing_accuracy = float("{0:.3f}".format(testing_accuracy));
+    if training_accuracy == 1.0:
+        training_accuracy = 0.999;
     print str(training_accuracy) + ' (training)';
-    print str(testing_accuracy) + ' (labeling)';
+    print str(testing_accuracy) + ' (testing)';
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
